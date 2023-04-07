@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class CrptApi {
 
-    private final String baseUrl = "https://markirovka.demo.crpt.tech"; // URL API
+    private final String baseUrl = "https://ismp.crpt.ru/api/v3"; // URL API
 
     private final OkHttpClient client;
     private final ObjectMapper objectMapper;
@@ -35,15 +35,18 @@ public class CrptApi {
     }
 
     public void createDocument(ObjectNode document, String signature) throws Exception {
-        getAsses();
+        String token = getAssesToken();
         checkRequestLimit();
         ObjectNode requestBody = objectMapper.createObjectNode();
-        requestBody.set("document", document);
+        requestBody.put("product_document", document);
+        requestBody.put("document_format", "MANUAL");
+        requestBody.put("type", "LP_INTRODUCE_GOODS");
         requestBody.put("signature", signature);
         String requestJson = objectMapper.writeValueAsString(requestBody);
         RequestBody requestBodyObject = RequestBody.create(MediaType.parse("application/json"), requestJson);
         Request request = new Request.Builder()
-                .url(baseUrl + "/lk/documents/commissioning/contract/create")
+                .url(baseUrl + "/lk/documents/create?pg=milk")
+                .header("Authorization", "Bearer " + token)
                 .post(requestBodyObject)
                 .build();
         Response response = client.newCall(request).execute();
@@ -72,7 +75,7 @@ public class CrptApi {
         }
     }
 
-    private void getAsses() throws IOException {
+    private String getAssesToken() throws IOException {
         Request request = new Request.Builder()
                 .url(baseUrl + "/auth/cert/key")
                 .build();
@@ -93,7 +96,9 @@ public class CrptApi {
                 .post(requestBodyObject)
                 .build();
         response = client.newCall(request).execute();
-        System.out.println(response.body().string());
-
+        responceBodyString = response.body().string();
+        responseJson = objectMapper.readTree(responceBodyString);
+        String tocken = responseJson.get("token").asText();
+        return tocken;
     }
 }
